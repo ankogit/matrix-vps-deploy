@@ -1,0 +1,23 @@
+# Coturn с network_mode: host — UDP/TURN слушает на интерфейсах VPS как при установке через apt.
+# Не поднимайте одновременно этот контейнер и системный coturn (порты 3478, 5349 заняты).
+#
+# Запуск вместе со стеком LiveKit:
+#   docker compose -f docker-compose.yml -f docker-compose.coturn.yml up -d
+#
+# Только TURN:
+#   docker compose -f docker-compose.coturn.yml up -d
+
+services:
+  coturn:
+    image: coturn/coturn:4.6.2-r12
+    container_name: coturn
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./config/turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - ${LETSENCRYPT_DIR:-/etc/letsencrypt}:/etc/letsencrypt:ro
+    command:
+      - "-n"
+      - "--log-file=stdout"
+      - "-c"
+      - "/etc/coturn/turnserver.conf"

@@ -1,0 +1,23 @@
+# Скопируйте в livekit.yaml и подставьте ключи из .env.
+# При network_mode: host в Docker порты слушаются на хосте напрямую.
+
+port: 7880
+bind_addresses:
+  - "0.0.0.0"
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50100
+  port_range_end: 50200
+  use_external_ip: true
+
+# Замените на LIVEKIT_API_KEY и LIVEKIT_API_SECRET
+keys:
+  your_api_key: your_api_secret
+
+# Опционально: turn_servers для клиентов (дублирует настройки в Matrix — см. README)
+# turn:
+#   enabled: true
+#   domain: yourdomain.ru
+#   tls_port: 5349
+#   udp_port: 3478
