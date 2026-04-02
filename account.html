@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Аккаунт — nonza.ru</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface-hover: #222632;
+    --border: #2a2e3a;
+    --text: #e4e6ed;
+    --text-muted: #8b8fa3;
+    --accent: #6c9fff;
+    --accent-hover: #5a8af2;
+    --accent-glow: rgba(108, 159, 255, 0.15);
+    --success: #4ade80;
+    --error: #f87171;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .logo {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .logo h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo h1 span {
+    color: var(--accent);
+  }
+
+  .logo p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 4px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(108, 159, 255, 0.3);
+  }
+
+  .tab:not(.active):hover {
+    color: var(--text);
+    background: var(--surface-hover);
+  }
+
+  .form-panel {
+    display: none;
+    animation: fadeIn 0.25s ease;
+  }
+
+  .form-panel.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field:last-of-type {
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  input::placeholder {
+    color: #4a4e5a;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .submit-btn:hover {
+    background: var(--accent-hover);
+  }
+
+  .submit-btn:active {
+    transform: scale(0.98);
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .msg {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    display: none;
+  }
+
+  .msg.show { display: block; }
+
+  .msg.success {
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    color: var(--success);
+  }
+
+  .msg.error {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    color: var(--error);
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .footer a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo">
+    <h1><span>[</span> nonza.ru <span>]</span></h1>
+    <p>Matrix-аккаунт</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('register')">Регистрация</button>
+    <button class="tab" onclick="switchTab('password')">Смена пароля</button>
+  </div>
+
+  <div id="panel-register" class="form-panel active">
+    <div class="card">
+      <div class="field">
+        <label>Имя пользователя</label>
+        <input type="text" id="reg-username" placeholder="ivan" autocomplete="username" autocapitalize="none" spellcheck="false">
+        <div class="hint">Латиница, цифры, -, _, . — без пробелов</div>
+      </div>
+      <div class="field">
+        <label>Пароль</label>
+        <input type="password" id="reg-password" placeholder="Минимум 8 символов" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label>Пароль ещё раз</label>
+        <input type="password" id="reg-password2" placeholder="Повторите пароль" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label>Токен регистрации</label>
+        <input type="text" id="reg-token" placeholder="Получите у администратора" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="submit-btn" onclick="doRegister()">Создать аккаунт</button>
+      <div id="reg-msg" class="msg"></div>
+    </div>
+  </div>
+
+  <div id="panel-password" class="form-panel">
+    <div class="card">
+      <div class="field">
+        <label>Имя пользователя</label>
+        <input type="text" id="pw-username" placeholder="ivan" autocomplete="username" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field">
+        <label>Текущий пароль</label>
+        <input type="password" id="pw-old" placeholder="Текущий пароль" autocomplete="current-password">
+      </div>
+      <div class="field">
+        <label>Новый пароль</label>
+        <input type="password" id="pw-new" placeholder="Минимум 8 символов" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label>Новый пароль ещё раз</label>
+        <input type="password" id="pw-new2" placeholder="Повторите новый пароль" autocomplete="new-password">
+      </div>
+      <button class="submit-btn" onclick="doChangePassword()">Сменить пароль</button>
+      <div id="pw-msg" class="msg"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Сервер: <a href="https://matrix.nonza.ru" target="_blank">matrix.nonza.ru</a>
+  </div>
+</div>
+
+<script>
+const MATRIX_SERVER = 'https://matrix.nonza.ru';
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', (tab === 'register' && i === 0) || (tab === 'password' && i === 1));
+  });
+  document.getElementById('panel-register').classList.toggle('active', tab === 'register');
+  document.getElementById('panel-password').classList.toggle('active', tab === 'password');
+}
+
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg show ' + type;
+}
+
+function hideMsg(id) {
+  document.getElementById(id).className = 'msg';
+}
+
+function setLoading(btn, loading) {
+  if (loading) {
+    btn.disabled = true;
+    btn._text = btn.textContent;
+    btn.innerHTML = '<span class="spinner"></span>Подождите...';
+  } else {
+    btn.disabled = false;
+    btn.textContent = btn._text;
+  }
+}
+
+async function doRegister() {
+  const username = document.getElementById('reg-username').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const password2 = document.getElementById('reg-password2').value;
+  const token = document.getElementById('reg-token').value.trim();
+  const btn = document.querySelector('#panel-register .submit-btn');
+
+  hideMsg('reg-msg');
+
+  if (!username) return showMsg('reg-msg', 'Введите имя пользователя', 'error');
+  if (!/^[a-z0-9._-]+$/i.test(username)) return showMsg('reg-msg', 'Имя: только латиница, цифры, -, _, .', 'error');
+  if (password.length < 8) return showMsg('reg-msg', 'Пароль должен быть минимум 8 символов', 'error');
+  if (password !== password2) return showMsg('reg-msg', 'Пароли не совпадают', 'error');
+  if (!token) return showMsg('reg-msg', 'Введите токен регистрации', 'error');
+
+  setLoading(btn, true);
+
+  try {
+    const initRes = await fetch(`${MATRIX_SERVER}/_matrix/client/v3/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username,
+        password,
+        initial_device_display_name: 'Web Registration'
+      })
+    });
+
+    const initData = await initRes.json();
+
+    if (initRes.status === 401 && initData.session) {
+      const regRes = await fetch(`${MATRIX_SERVER}/_matrix/client/v3/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username,
+          password,
+          initial_device_display_name: 'Web Registration',
+          auth: {
+            type: 'm.login.registration_token',
+            token,
+            session: initData.session
+          }
+        })
+      });
+
+      const regData = await regRes.json();
+
+      if (regRes.ok) {
+        showMsg('reg-msg', `Аккаунт @${username}:nonza.ru создан! Можете войти в мессенджер.`, 'success');
+        document.getElementById('reg-username').value = '';
+        document.getElementById('reg-password').value = '';
+        document.getElementById('reg-password2').value = '';
+        document.getElementById('reg-token').value = '';
+      } else {
+        showMsg('reg-msg', regData.error || 'Ошибка регистрации', 'error');
+      }
+    } else if (initRes.ok) {
+      showMsg('reg-msg', `Аккаунт @${username}:nonza.ru создан!`, 'success');
+    } else {
+      showMsg('reg-msg', initData.error || 'Ошибка регистрации', 'error');
+    }
+  } catch (e) {
+    showMsg('reg-msg', 'Не удалось подключиться к серверу. Проверьте соединение.', 'error');
+  }
+
+  setLoading(btn, false);
+}
+
+async function doChangePassword() {
+  const username = document.getElementById('pw-username').value.trim();
+  const oldPass = document.getElementById('pw-old').value;
+  const newPass = document.getElementById('pw-new').value;
+  const newPass2 = document.getElementById('pw-new2').value;
+  const btn = document.querySelector('#panel-password .submit-btn');
+
+  hideMsg('pw-msg');
+
+  if (!username) return showMsg('pw-msg', 'Введите имя пользователя', 'error');
+  if (!oldPass) return showMsg('pw-msg', 'Введите текущий пароль', 'error');
+  if (newPass.length < 8) return showMsg('pw-msg', 'Новый пароль — минимум 8 символов', 'error');
+  if (newPass !== newPass2) return showMsg('pw-msg', 'Новые пароли не совпадают', 'error');
+
+  setLoading(btn, true);
+
+  try {
+    const loginRes = await fetch(`${MATRIX_SERVER}/_matrix/client/v3/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'm.login.password',
+        identifier: { type: 'm.id.user', user: username },
+        password: oldPass,
+        initial_device_display_name: 'Password Change'
+      })
+    });
+
+    const loginData = await loginRes.json();
+
+    if (!loginRes.ok) {
+      showMsg('pw-msg', loginRes.status === 403 ? 'Неверное имя пользователя или пароль' : (loginData.error || 'Ошибка входа'), 'error');
+      setLoading(btn, false);
+      return;
+    }
+
+    const accessToken = loginData.access_token;
+
+    const pwRes = await fetch(`${MATRIX_SERVER}/_matrix/client/v3/account/password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        new_password: newPass,
+        logout_devices: false,
+        auth: {
+          type: 'm.login.password',
+          identifier: { type: 'm.id.user', user: username },
+          password: oldPass
+        }
+      })
+    });
+
+    if (pwRes.ok) {
+      showMsg('pw-msg', 'Пароль успешно изменён!', 'success');
+      document.getElementById('pw-old').value = '';
+      document.getElementById('pw-new').value = '';
+      document.getElementById('pw-new2').value = '';
+    } else {
+      const pwData = await pwRes.json();
+      showMsg('pw-msg', pwData.error || 'Ошибка смены пароля', 'error');
+    }
+
+    try {
+      await fetch(`${MATRIX_SERVER}/_matrix/client/v3/logout`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+    } catch (_) {}
+
+  } catch (e) {
+    showMsg('pw-msg', 'Не удалось подключиться к серверу. Проверьте соединение.', 'error');
+  }
+
+  setLoading(btn, false);
+}
+</script>
+</body>
+</html>

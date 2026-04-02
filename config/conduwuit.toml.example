@@ -1,0 +1,17 @@
+[global]
+server_name = "yourdomain.ru"
+database_path = "/var/lib/conduwuit"
+port = 6167
+address = "0.0.0.0"
+
+# Токен для регистрации новых пользователей: openssl rand -hex 32
+registration_token = "СГЕНЕРИРУЙТЕ_ТОКЕН"
+allow_registration = true
+allow_encryption = true
+allow_federation = true
+
+trusted_servers = ["matrix.org"]
+
+[global.well_known]
+client = "https://matrix.yourdomain.ru"
+server = "matrix.yourdomain.ru:443"

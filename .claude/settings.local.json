@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__mcp-ssh-tool__fs_write",
+      "mcp__mcp-ssh-tool__proc_exec"
+    ]
+  }
+}

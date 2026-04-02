@@ -1,8 +1,15 @@
-# LiveKit + Element lk-jwt-service.
-# Опционально coturn: docker-compose.coturn.yml (см. README).
-# Continuwuity, Nginx, Certbot — на хосте.
-
 services:
+  conduwuit:
+    image: ghcr.io/continuwuity/continuwuity:latest
+    container_name: conduwuit
+    restart: unless-stopped
+    ports:
+      - "6167:6167"
+    volumes:
+      - conduwuit-data:/var/lib/conduwuit
+      - ./config/conduwuit.toml:/etc/conduwuit/conduwuit.toml:ro
+    command: ["/sbin/conduwuit", "-c", "/etc/conduwuit/conduwuit.toml"]
+
   livekit:
     image: livekit/livekit-server:v1.9.4
     container_name: livekit
@@ -17,12 +24,32 @@ services:
     container_name: lk-jwt
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8080:8080"
+      - "8080:8080"
     environment:
       LIVEKIT_URL: ${LIVEKIT_URL}
       LIVEKIT_KEY: ${LIVEKIT_API_KEY}
       LIVEKIT_SECRET: ${LIVEKIT_API_SECRET}
       LIVEKIT_FULL_ACCESS_HOMESERVERS: ${LIVEKIT_FULL_ACCESS_HOMESERVERS}
-    # host network у livekit — зависимость только для порядка запуска
     depends_on:
       - livekit
+
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./config/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+
+  static:
+    image: nginx:alpine
+    container_name: matrix-static
+    restart: unless-stopped
+    ports:
+      - "8888:80"
+    volumes:
+      - /var/www/html:/usr/share/nginx/html:ro
+
+volumes:
+  conduwuit-data:

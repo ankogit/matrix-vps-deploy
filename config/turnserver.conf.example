@@ -1,25 +1,18 @@
-# Скопируйте в turnserver.conf и подставьте DOMAIN, static-auth-secret и realm.
-# Пути cert/pkey — внутри контейнера (смонтирован /etc/letsencrypt с хоста).
+realm=yourdomain.ru
+server-name=yourdomain.ru
 
-listening-ip=0.0.0.0
-relay-ip=0.0.0.0
 listening-port=3478
 tls-listening-port=5349
 
 fingerprint
+lt-cred-mech
 use-auth-secret
-static-auth-secret=ВАШ_SECRET_OPENSSL_RAND_HEX_32
-realm=yourdomain.ru
+# Тот же секрет, что TURN_SHARED_SECRET в .env: openssl rand -hex 32
+static-auth-secret=ВАШ_TURN_SECRET
 
-cert=/etc/letsencrypt/live/yourdomain.ru/fullchain.pem
-pkey=/etc/letsencrypt/live/yourdomain.ru/privkey.pem
+# Диапазон UDP для медиа
+min-port=49152
+max-port=65535
 
-no-cli
-# Усложняет отладку при жёстких файрволах; при проблемах с звонками попробуйте закомментировать.
-no-tcp-relay
-
-denied-peer-ip=10.0.0.0-10.255.255.255
-denied-peer-ip=192.168.0.0-192.168.255.255
-denied-peer-ip=172.16.0.0-172.31.255.255
-
-# Логи идут в stdout при запуске из docker-compose.coturn.yml (-n --log-file=stdout)
+log-file=stdout
+no-multicast-peers

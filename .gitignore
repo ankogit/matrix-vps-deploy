@@ -1,3 +1,5 @@
 .env
 config/livekit.yaml
 config/turnserver.conf
+config/conduwuit.toml
+ssh

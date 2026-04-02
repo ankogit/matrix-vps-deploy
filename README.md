@@ -1,80 +1,93 @@
 # Matrix (Continuwuity) + LiveKit на VPS
 
-Папка дополняет пошаговый план установки: **Docker Compose** для **LiveKit**, **lk-jwt-service** и (опционально) **coturn**, плюс шаблоны конфигов и замечания по надёжности.
+Полный стек Matrix-сервера через Docker Compose: **Continuwuity**, **LiveKit**, **lk-jwt-service**, **coturn** и статик-сервер для страницы аккаунта.
 
-## Что вынесено в Docker Compose
+## Архитектура
 
-| Компонент        | Где запускать | Почему |
-|------------------|---------------|--------|
-| **LiveKit**      | `docker-compose.yml` | Официальный образ, проще обновлять, `network_mode: host` для WebRTC |
-| **lk-jwt**       | `docker-compose.yml` | Те же секреты, что в LiveKit, удобно через `.env` |
-| **coturn**       | `docker-compose.coturn.yml` | `network_mode: host` — те же порты 3478/5349, что у «apt install coturn», без проброса UDP-диапазонов |
-| **Continuwuity** | Хост (`.deb` + systemd) | Меньше сюрпризов с путями и данными; проще бэкап `/var/lib/conduwuit` |
-| **Nginx + TLS**  | Хост | Привычный certbot, один вход на 443 |
+| Компонент | Образ | Порт | Сеть |
+|-----------|-------|------|------|
+| **Continuwuity** | `ghcr.io/continuwuity/continuwuity:latest` | `6167` | bridge |
+| **LiveKit** | `livekit/livekit-server:v1.9.4` | `7884` (HTTP), `7885` (RTC TCP), `50200-50300/udp` | host |
+| **lk-jwt** | `ghcr.io/element-hq/lk-jwt-service:0.4.2` | `8080` | bridge |
+| **coturn** | `coturn/coturn:latest` | `3478/udp`, `5349/tcp` | host |
+| **static** | `nginx:alpine` | `8888` | bridge |
 
-**Не поднимайте одновременно** контейнер `coturn` и системный `coturn`/`turnserver` из пакета — порты заняты.
+Nginx и SSL — на отдельном шлюзе, который проксирует трафик на этот сервер.
 
-### Coturn в Docker
+## Быстрый старт
 
-1. Выпустите сертификат Let’s Encrypt (как в основном плане), чтобы на хосте существовали `fullchain.pem` и `privkey.pem`.
-2. `cp config/turnserver.conf.example config/turnserver.conf` — укажите `realm`, `static-auth-secret` (`openssl rand -hex 32`), пути `cert`/`pkey` на **ваш** каталог внутри `/etc/letsencrypt/live/...` (в контейнере тот же путь, каталог монтируется с хоста).
-3. В `.env` задайте `LETSENCRYPT_DIR=/etc/letsencrypt` (если отличается).
-4. Если контейнер не читает ключи, на хосте часто нужно дать чтение каталогу Let’s Encrypt (группа `ssl-cert`, `chmod` на `archive`/`live` — см. доки дистрибутива; это та же проблема, что и у coturn из `apt`).
-5. Запуск **вместе** с LiveKit:
+1. `cp .env.example .env` — заполните домены и ключи
+2. `cp config/conduwuit.toml.example config/conduwuit.toml` — подставьте домен и токен регистрации
+3. `cp config/livekit.yaml.example config/livekit.yaml` — вставьте ту же пару key/secret из `.env`
+4. `cp config/turnserver.conf.example config/turnserver.conf` — подставьте домен и TURN_SHARED_SECRET
+5. `docker compose up -d`
+
+### Генерация секретов
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.coturn.yml up -d
+openssl rand -hex 12   # LIVEKIT_API_KEY
+openssl rand -hex 32   # LIVEKIT_API_SECRET, TURN_SHARED_SECRET, registration_token
 ```
 
-Только TURN: `docker compose -f docker-compose.coturn.yml up -d`
+### Первый пользователь
 
-Логи: `docker logs -f coturn`
+При первом запуске Continuwuity выдаёт временный токен для создания первого аккаунта:
 
-## Быстрый старт (часть стека в Compose)
+```bash
+docker logs conduwuit 2>&1 | grep "registration token"
+```
 
-1. На VPS уже должны работать: Continuwuity (порт `6167` на loopback), Nginx с прокси как в плане, SSL.
-2. Скопируйте репозиторий/папку на сервер (или только файлы из `matrix-vps-deploy/`).
-3. `cp .env.example .env` — заполните ключи и домены.
-4. `cp config/livekit.yaml.example config/livekit.yaml` — вставьте ту же пару **key: secret**, что в `.env`.
-5. Из этой директории: `docker compose up -d`
-6. Проверка: `curl -sS https://matrix.yourdomain.ru/livekit/jwt/healthz`
+После создания первого аккаунта начнёт работать токен из `conduwuit.toml`.
 
-Обновление образов: `docker compose pull && docker compose up -d`
+## Порты для проксирования
 
-## Улучшения относительно «сырого» плана
+Внешний nginx (`matrix.nonza.ru` → этот сервер):
 
-1. **Опечатки в командах** — в оригинале местами слиплись `bash` и команда (`bashfallocate`, `bashapt`). В шелле должны быть отдельные строки.
-2. **1 ГБ RAM** — зависит от числа пользователей и звонков; swap обязателен. LiveKit на слабом VPS: узкий диапазон `rtc.port_range_*`, ограничение одновременных участников.
-3. **Пин версий образов** — в `docker-compose.yml` указаны конкретные теги; не используйте неограниченный `:latest` в проде без осознанного CI.
-4. **Секреты** — `registration_token`, LiveKit keys, TURN secret только в конфигах на сервере или в `.env`, не в git.
-5. **Firewall** — открыть как минимум: `80/tcp`, `443/tcp`, `3478/udp` (TURN), диапазон UDP для LiveKit (как в `livekit.yaml`, например `50100-50200/udp`), при необходимости `7881/tcp` (RTC TCP). Точный список лучше сверить с [документацией LiveKit](https://docs.livekit.io/) под вашу схему за NAT.
-6. **Nginx и статика `/account`** — для одного файла надёжнее `alias …/account.html`, чем `root` + `try_files` (меньше путаницы с путями). Фрагмент: `config/nginx-snippet-matrix.conf`.
-7. **Путь к бинарнику Continuwuity** — после `dpkg -i` проверьте `which conduwuit` или `dpkg -L continuwuity`; в unit-файле должен совпадать реальный путь (не всегда `/usr/local/bin/conduwuit`).
-8. **Coturn и TLS** — пути к `fullchain.pem` / `privkey.pem` должны существовать до рестарта coturn после первого успешного `certbot`; пользователь `turnserver` должен читать каталог Let’s Encrypt (на Debian часто нужна группа `ssl-cert` и права).
-9. **Бэкапы** — регулярно копируйте `/var/lib/conduwuit` и `/etc/conduwuit/conduwuit.toml` (и `.env` этой папки, если используете Compose).
-10. **DNS** — для клиентов Matrix важны корректные `/.well-known/matrix/*`; при смене поддоменов обновляйте JSON в Nginx синхронно с `server_name` в conduwuit.
+| Путь | Порт | Протокол |
+|------|------|----------|
+| `/` | `6167` | HTTP |
+| `/livekit/jwt/` | `8080` | HTTP |
+| `/livekit/sfu/` | `7884` | WebSocket |
+| `/account` | `8888` | HTTP (статика) |
 
-## Переменные окружения
+Открыть в файрволе напрямую (не через nginx):
 
-См. `.env.example`. `LIVEKIT_URL` — публичный **WSS** до SFU через ваш Nginx (как в оригинальном плане).
+| Порт | Протокол | Назначение |
+|------|----------|------------|
+| `7885` | TCP | LiveKit RTC TCP |
+| `50200-50300` | UDP | LiveKit RTC UDP |
+| `3478` | UDP | TURN |
+| `5349` | TCP | TURNS |
 
 ## Файлы
 
 | Файл | Назначение |
 |------|------------|
-| `docker-compose.yml` | LiveKit (host network) + lk-jwt |
-| `docker-compose.coturn.yml` | Coturn (host network), конфиг и `/etc/letsencrypt` с хоста |
+| `docker-compose.yml` | Весь стек |
+| `config/conduwuit.toml.example` | Шаблон конфига Matrix-сервера |
 | `config/livekit.yaml.example` | Шаблон конфига LiveKit |
-| `config/turnserver.conf.example` | Шаблон coturn |
-| `config/nginx-snippet-matrix.conf` | Фрагмент `location` для Matrix + LiveKit + `/account` |
-| `.env.example` | Шаблон секретов и доменов |
+| `config/turnserver.conf.example` | Шаблон конфига coturn |
+| `config/nginx-matrix.nonza.ru.conf` | Конфиг внешнего nginx-шлюза |
+| `.env.example` | Шаблон переменных окружения |
+| `account.html` | Страница регистрации и смены пароля |
 
-Страницу `account.html` из вашего плана положите на сервер в `/var/www/html/account.html` и подставьте свой домен во все вхождения.
+## Страница регистрации (`/account`)
 
-## Исходный сценарий (кратко)
+Веб-страница для регистрации и смены пароля — нужна потому что Element X не поддерживает эти операции без OIDC/MAS. Работает через Matrix Client API напрямую.
 
-Подготовка Debian → DNS `A` на `@` и `matrix` → Continuwuity → Nginx → Certbot → coturn (**apt или** `docker-compose.coturn.yml`) → **Compose: LiveKit + lk-jwt** → первый пользователь → `/account` → проверка `systemctl` / `docker ps`.
+Файл `account.html` лежит на сервере в `/var/www/html/account.html` и отдаётся контейнером `static` (nginx:alpine) на порту `8888`. Внешний nginx проксирует `/account` → `8888`.
 
----
+Доступна по адресу: `https://matrix.nonza.ru/account`
 
-English: Continuwuity and Nginx stay on the host. **LiveKit**, **lk-jwt-service**, and **optionally coturn** run via Compose (coturn uses host networking). Pin tags and open firewall ports per LiveKit/TURN docs.
+## Обновление
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+## Заметки
+
+- **Порты LiveKit**: если на сервере уже занят `7880/7881` другим инстансом, используйте `7884/7885` и UDP-диапазон `50200-50300` (как в текущем конфиге).
+- **livekit + network_mode: host**: нельзя использовать Docker-сеть между livekit и другими сервисами — lk-jwt подключается к livekit по публичному URL.
+- **coturn без TLS**: если нет локального certbot, coturn работает только на UDP 3478. TURNS (5349) требует сертификатов.
+- **Бэкапы**: регулярно копируйте Docker volume `matrix_conduwuit-data` и `/home/infra/matrix/.env`.
